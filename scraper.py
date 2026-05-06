@@ -123,10 +123,13 @@ def _extract_json_ld_product(soup: BeautifulSoup) -> dict:
 def _extract_product_links_from_category(category_url: str) -> list[str]:
     links: list[str] = []
     visited_pages: set[str] = set()
-    page_url = category_url
+    page_url = category_url.rstrip("/") + "/"
+
+    category_path = urlparse(page_url).path.strip("/")
 
     while page_url and page_url not in visited_pages:
         visited_pages.add(page_url)
+
         soup = _get(page_url)
 
         if not soup:
@@ -134,12 +137,12 @@ def _extract_product_links_from_category(category_url: str) -> list[str]:
 
         for a in soup.select("a[href]"):
             href = a.get("href", "")
-            text = _clean(a.get_text(" ", strip=True))
 
             if not href:
                 continue
 
             full_url = _normalize_url(href)
+            full_url = full_url.split("?")[0].rstrip("/") + "/"
 
             if not _is_internal_url(full_url):
                 continue
@@ -147,7 +150,7 @@ def _extract_product_links_from_category(category_url: str) -> list[str]:
             if _is_bad_link(full_url):
                 continue
 
-            if full_url.rstrip("/") == category_url.rstrip("/"):
+            if full_url == page_url:
                 continue
 
             parsed = urlparse(full_url)
@@ -156,40 +159,45 @@ def _extract_product_links_from_category(category_url: str) -> list[str]:
             if not path:
                 continue
 
-            # iStore product links usually have category/product-slug structure.
-            # Product cards often contain price/add-to-cart nearby, so this boosts accuracy.
-            parent_text = _clean(a.parent.get_text(" ", strip=True)) if a.parent else ""
-            nearby_text = f"{text} {parent_text}"
+            # מוצר ב־iStore:
+            # /category/product/
+            if category_path and path.startswith(category_path + "/"):
 
-            looks_like_product = (
-                "₪" in nearby_text
-                or "הוספה לסל" in nearby_text
-                or "קנה עכשיו" in nearby_text
-                or "פרטים נוספים" in nearby_text
-            )
+                # חייב להיות לפחות עוד חלק אחד אחרי הקטגוריה
+                remaining = path[len(category_path):].strip("/")
 
-            # Avoid pure category/filter pages when possible.
-            if not looks_like_product:
-                continue
+                if "/" not in remaining and remaining:
 
-            if full_url not in links:
-                links.append(full_url)
+                    if full_url not in links:
+                        links.append(full_url)
 
+        # pagination
         next_link = None
+
         for a in soup.select("a[href]"):
-            label = _clean(a.get_text(" ", strip=True))
             href = a.get("href", "")
-            if label in {"הבא", ">", "»", "Next"} or "page=" in href or "/page/" in href:
+            label = _clean(a.get_text(" ", strip=True))
+
+            if (
+                "page=" in href
+                or "/page/" in href
+                or label in {"הבא", ">", "»", "Next"}
+            ):
                 full_next = _normalize_url(href)
-                if full_next not in visited_pages and _is_internal_url(full_next):
+                full_next = full_next.split("?")[0].rstrip("/") + "/"
+
+                if (
+                    full_next not in visited_pages
+                    and _is_internal_url(full_next)
+                ):
                     next_link = full_next
                     break
 
         page_url = next_link
 
     logger.info("Found %d product links in %s", len(links), category_url)
-    return links
 
+    return links
 
 def _extract_name(soup: BeautifulSoup) -> str:
     selectors = [
