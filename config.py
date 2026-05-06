@@ -1,32 +1,47 @@
 import os
 from dotenv import load_dotenv
 
+from categories import CATEGORY_URLS_DEFAULT
+
 load_dotenv()
 
 
-def get_list_env(key: str, default: str) -> list[str]:
-    raw = os.getenv(key, default)
+def get_list_env(key: str, default_items: list[str]) -> list[str]:
+    """
+    Reads comma-separated ENV variable.
+    If ENV is empty, uses default_items from categories.py.
+    """
+    raw = os.getenv(key, "").strip()
+
+    if not raw:
+        return default_items
+
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
 # Telegram
-BOT_TOKEN: str = os.getenv("BOT_TOKEN", "")
-CHANNEL_USERNAME: str = os.getenv("CHANNEL_USERNAME", "@compassgrill")
+BOT_TOKEN: str = os.getenv("BOT_TOKEN", "").strip()
+CHANNEL_USERNAME: str = os.getenv("CHANNEL_USERNAME", "@compassgrill").strip()
 
 # Site
-SITE_BASE_URL: str = os.getenv("SITE_BASE_URL", "https://compassgrill.co.il")
+SITE_BASE_URL: str = os.getenv("SITE_BASE_URL", "https://compassgrill.co.il").strip()
+
 CATEGORY_URLS: list[str] = get_list_env(
     "CATEGORY_URLS",
-    "https://compassgrill.co.il/fuel-wood-smoking-pellets-charcoal/",
+    CATEGORY_URLS_DEFAULT,
 )
 
 # Scheduler
-POST_TIMES: list[str] = get_list_env("POST_TIMES", "10:00,14:00,19:30")
-TIMEZONE: str = os.getenv("TIMEZONE", "Asia/Jerusalem")
+POST_TIMES: list[str] = get_list_env(
+    "POST_TIMES",
+    ["09:00", "10:30", "12:00", "13:30", "15:00", "16:30", "18:00", "19:30", "21:00", "22:30"],
+)
+
+TIMEZONE: str = os.getenv("TIMEZONE", "Asia/Jerusalem").strip()
 
 # Database
-DB_PATH: str = os.getenv("DB_PATH", "data/bot.db")
-DAYS_BEFORE_REPEAT: int = int(os.getenv("DAYS_BEFORE_REPEAT", "14"))
+DB_PATH: str = os.getenv("DB_PATH", "data/bot.db").strip()
+DAYS_BEFORE_REPEAT: int = int(os.getenv("DAYS_BEFORE_REPEAT", "3"))
 
 # HTTP
 REQUEST_HEADERS = {
@@ -37,4 +52,5 @@ REQUEST_HEADERS = {
     ),
     "Accept-Language": "he-IL,he;q=0.9,en-US;q=0.8,en;q=0.7",
 }
-REQUEST_TIMEOUT: int = 15
+
+REQUEST_TIMEOUT: int = int(os.getenv("REQUEST_TIMEOUT", "15"))
