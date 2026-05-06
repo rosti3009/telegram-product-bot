@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: compass-grill-telegram-bot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: BOT_TOKEN
+        sync: false          # Must be set manually in Render dashboard – never commit this!
+      - key: CHANNEL_USERNAME
+        value: "@compassgrill"
+      - key: SITE_BASE_URL
+        value: "https://compassgrill.co.il"
+      - key: CATEGORY_URLS
+        value: "https://compassgrill.co.il/fuel-wood-smoking-pellets-charcoal/"
+      - key: POST_TIMES
+        value: "10:00,14:00,19:30"
+      - key: TIMEZONE
+        value: "Asia/Jerusalem"
+      - key: DB_PATH
+        value: "data/bot.db"
+      - key: DAYS_BEFORE_REPEAT
+        value: "14"
+    disk:
+      name: bot-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
